@@ -27,12 +27,12 @@ spec:
         - name: SHARED_DIRECTORY
           value: /exports
         ports:
-        - name: nfs
-          containerPort: 2049
-        - name: mountd
-          containerPort: 20048
-        - name: rpcbind
-          containerPort: 111
+        - containerPort: 2049
+          name: nfs
+        - containerPort: 20048
+          name: mountd
+        - containerPort: 111
+          name: rpcbind
         volumeMounts:
         - name: nfs-data
           mountPath: /exports
@@ -75,7 +75,7 @@ spec:
   storageClassName: nfs-manual
   nfs:
     server: nfs-service.upload-demo.svc.cluster.local
-    path: /
+    path: /exports
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -110,11 +110,6 @@ spec:
       - name: app
         image: go-file-uploader:v1
         imagePullPolicy: IfNotPresent
-        env:
-        - name: APP_TITLE
-          value: Go File Uploader - shared PVC (NFS)
-        - name: ACCESS_NOTE
-          value: Files are stored on a shared NFS-backed PVC, so the pod can move to another node and still use the same files.
         ports:
         - containerPort: 8080
         volumeMounts:
