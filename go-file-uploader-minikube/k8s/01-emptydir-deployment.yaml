@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: uploader-emptydir
+  namespace: upload-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: uploader-emptydir
+  template:
+    metadata:
+      labels:
+        app: uploader-emptydir
+    spec:
+      containers:
+      - name: app
+        image: go-file-uploader:v1
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: APP_TITLE
+          value: Go File Uploader - emptyDir
+        - name: ACCESS_NOTE
+          value: Files live only inside the pod lifecycle. Delete/reschedule the pod and the data is gone.
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: uploads
+          mountPath: /data/uploads
+      volumes:
+      - name: uploads
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: uploader-emptydir
+  namespace: upload-demo
+spec:
+  selector:
+    app: uploader-emptydir
+  ports:
+  - port: 8080
+    targetPort: 8080
+    nodePort: 30081
+  type: NodePort
