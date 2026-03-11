@@ -127,6 +127,11 @@ func main() {
 		w.Write([]byte("ok"))
 	})
 
+	mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(200)
+		w.Write([]byte("pong"))
+	})
+
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		rows, err := db.Query(`SELECT id, name, created_at FROM visitors ORDER BY id`)
 		if err != nil {
