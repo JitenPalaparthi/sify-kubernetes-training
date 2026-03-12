@@ -31,7 +31,7 @@ spec:
       volumes:
       - name: uploads
         hostPath:
-          path: /var/lib/minikube-uploads
+          path: /data/uploads
           type: DirectoryOrCreate
 ---
 apiVersion: v1
