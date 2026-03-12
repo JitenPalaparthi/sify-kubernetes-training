@@ -8,23 +8,28 @@ spec:
   volumeMode: Filesystem
   accessModes:
     - ReadWriteOnce
+  storageClassName: ""
+  persistentVolumeReclaimPolicy: Retain
   hostPath:
     path: /data/uploads
+    type: DirectoryOrCreate
 
---- 
-
+---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: upload-pvc2
-  namespace : upload-demo
+  namespace: upload-demo
 spec:
+  storageClassName: ""
+  volumeName: upload-pv
+  accessModes:
+    - ReadWriteOnce
   resources:
     requests:
       storage: 1Gi
   volumeMode: Filesystem
-  accessModes:
-    - ReadWriteOnce
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -49,7 +54,7 @@ spec:
         - name: APP_TITLE
           value: Go File Uploader - hostPath
         - name: ACCESS_NOTE
-          value: Files are stored on the selected node path /var/lib/minikube-uploads and survive pod restart on the same node.
+          value: Files are stored on the Minikube node path /data/uploads and survive pod restart on the same node.
         ports:
         - containerPort: 8080
         volumeMounts:
@@ -59,6 +64,7 @@ spec:
       - name: uploads
         persistentVolumeClaim:
           claimName: upload-pvc2
+
 ---
 apiVersion: v1
 kind: Service

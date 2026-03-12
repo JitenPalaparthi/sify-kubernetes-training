@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: app
-        image: go-file-uploader:v1
+        image: docker.io/jpalaparthi/sify-uploader-demo:v01
         imagePullPolicy: IfNotPresent
         env:
         - name: APP_TITLE
