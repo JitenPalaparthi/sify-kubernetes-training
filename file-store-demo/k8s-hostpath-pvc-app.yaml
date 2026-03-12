@@ -3,10 +3,43 @@ kind: Namespace
 metadata:
   name: demo
 ---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: gofile-store-pv
+spec:
+  capacity:
+    storage: 1Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ""
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /data/uploads
+    type: DirectoryOrCreate
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gofile-store-pvc
+  namespace: demo
+spec:
+  storageClassName: ""
+  volumeName: gofile-store-pv
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  volumeMode: Filesystem
+---
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: gofile-store
+  name: gofile-store-pvc-deploy
   namespace: demo
 spec:
   replicas: 1
@@ -50,9 +83,8 @@ spec:
 
       volumes:
         - name: host-storage
-          hostPath:
-            path: /var/lib/gofile-store
-            type: DirectoryOrCreate
+          persistentVolumeClaim:
+            claimName: gofile-store-pvc
 ---
 apiVersion: v1
 kind: Service

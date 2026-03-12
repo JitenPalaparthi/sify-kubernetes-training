@@ -9,3 +9,11 @@ kubectl get pods -n gofile-store -o wide
 
 
 ls -l /var/lib/gofile-store
+
+
+curl -X POST http://192.168.2.8:30080/write-text \
+  -H "Content-Type: application/json" \
+  -d '{
+    "file_name": "hello.txt",
+    "content": "Hello from Go REST service running on Kubernetes hostPath volume"
+  }'
