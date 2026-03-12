@@ -58,7 +58,7 @@ spec:
       containers:
         - name: gofile-store
           image: docker.io/jpalaparthi/gofile-store:1.0.0
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
 
           ports:
             - containerPort: 8080
