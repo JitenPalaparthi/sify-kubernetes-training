@@ -16,7 +16,7 @@ spec:
       containers:
       - name: app
         image: docker.io/jpalaparthi/sify-uploader-demo:v01
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         env:
         - name: APP_TITLE
           value: Go File Uploader - hostPath
@@ -26,7 +26,7 @@ spec:
         - containerPort: 8080
         volumeMounts:
         - name: uploads
-          mountPath: /data/uploads
+          mountPath: data/uploads
      
       volumes:
       - name: uploads
