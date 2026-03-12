@@ -21,6 +21,13 @@ multipass launch 24.04 \
   --disk 20G \
   --cloud-init storage.yaml
 
+   multipass launch 24.04 \
+  --name k8s-client \
+  --cpus 1 \
+  --memory 1G \
+  --disk 10G \
+  --cloud-init client-node.yaml
+
 
 kubeadm join 192.168.2.7:6443 --token jq01eb.nwx5d9op067vg7fp \
 	--discovery-token-ca-cert-hash sha256:0d3c5633c6ea868f375dd27e6511be28fd42739379b2a5d09a58391a16ce9b85 
