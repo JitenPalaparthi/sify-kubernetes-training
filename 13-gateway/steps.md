@@ -26,7 +26,21 @@ helm install eg oci://docker.io/envoyproxy/gateway-helm \
 
 5. run 01-deployments.yaml
 
-6. run 03-gateway.yaml
+
+
+- create self signed certificate (only for dev and testing)
+
+```bash
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.crt -subj "/CN=demo.local/O=demo.local"
+```
+
+- create secret 
+
+```bash
+kubectl create secret tls demo-tls --cert=tls.crt --key=tls.key -n demo
+```
+
+6. run 02-gateway.yaml
 
 7. get external ip
 
@@ -37,7 +51,8 @@ kubectl get gateway demo-gateway -n demo
 8. Test by calling 
 
 ```bash
-curl -H "Host: demo.local" http://192.168.2.240/a
-curl -H "Host: demo.local" http://192.168.2.240/b
+ curl -vk --resolve demo.local:443:10.38.154.240 https://demo.local/a
+ curl -vk --resolve demo.local:443:10.38.154.240 https://demo.local/b
+ # The ip need to be ecxternal --> metallb gives the ip  
 ```
 
