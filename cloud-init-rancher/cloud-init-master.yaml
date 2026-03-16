@@ -15,9 +15,9 @@ write_files:
       #!/usr/bin/env bash
       set -euo pipefail
 
-      RANCHER_URL="https://rancher.192.168.2.21.sslip.io"
-      RANCHER_TOKEN="6njj7nwpnjj7bh2hdglpxdrvr8qdcrzcml8ck9dlcnx5mq922h6s6p"
-      CA_CHECKSUM="ffc41b63c43f9f13a363a3a87fe19750432962ec68b2014f0db192841f28b66c"
+      RANCHER_URL="https://rancher.10.38.154.227.sslip.io"
+      RANCHER_TOKEN="6zm56dmnd7hrwvpxfvkpdqv5pfb7v2vg9ccdcbhw9wgp8rkpfz6hvd"
+      CA_CHECKSUM="8ad04de5cb64a6757dc60c3b2771f5ddb6fb01d43829cbb91b2199fdaba6ab33"
 
       echo "[1/8] Cleaning old Rancher agent state if present..."
       systemctl stop rancher-system-agent >/dev/null 2>&1 || true
