@@ -1,0 +1,63 @@
+#cloud-config
+package_update: true
+
+packages:
+  - curl
+  - wget
+  - ca-certificates
+  - jq
+
+write_files:
+  - path: /root/register-rancher-server.sh
+    permissions: "0755"
+    owner: root:root
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+
+      RANCHER_URL="https://rancher.192.168.2.21.sslip.io"
+      RANCHER_TOKEN="6njj7nwpnjj7bh2hdglpxdrvr8qdcrzcml8ck9dlcnx5mq922h6s6p"
+      CA_CHECKSUM="ffc41b63c43f9f13a363a3a87fe19750432962ec68b2014f0db192841f28b66c"
+
+      echo "[1/8] Cleaning old Rancher agent state if present..."
+      systemctl stop rancher-system-agent >/dev/null 2>&1 || true
+      /usr/local/bin/rancher-system-agent-uninstall.sh >/dev/null 2>&1 || true
+      rm -rf /etc/rancher /var/lib/rancher /var/lib/cattle
+
+      echo "[2/8] Waiting for network..."
+      for i in $(seq 1 30); do
+        if ping -c 1 8.8.8.8 >/dev/null 2>&1 || curl -k --max-time 5 "${RANCHER_URL}/ping" >/dev/null 2>&1; then
+          break
+        fi
+        sleep 5
+      done
+
+      echo "[3/8] Testing Rancher reachability..."
+      curl -k --fail --silent --show-error "${RANCHER_URL}/ping" || true
+      echo
+
+      echo "[4/8] Installing Rancher system agent..."
+      curl -fkL "${RANCHER_URL}/system-agent-install.sh" | sh -s - \
+        --server "${RANCHER_URL}" \
+        --label 'cattle.io/os=linux' \
+        --token "${RANCHER_TOKEN}" \
+        --ca-checksum "${CA_CHECKSUM}" \
+        --etcd \
+        --controlplane
+
+      echo "[5/8] Waiting for rancher-system-agent service..."
+      sleep 10
+
+      echo "[6/8] rancher-system-agent status:"
+      systemctl status rancher-system-agent --no-pager || true
+
+      echo "[7/8] Recent rancher-system-agent logs:"
+      journalctl -u rancher-system-agent -n 100 --no-pager || true
+
+      echo "[8/8] Done."
+      echo "This node should appear in Rancher as etcd + controlplane."
+
+runcmd:
+  - [ bash, -c, "/root/register-rancher-server.sh > /var/log/register-rancher-server.log 2>&1" ]
+
+final_message: "Server cloud-init finished. Check /var/log/register-rancher-server.log"

@@ -1,0 +1,50 @@
+multipass launch 24.04 --name mgmt-k3s   --cpus 2 --memory 4G --disk 20G
+multipass launch 24.04 --name prod-master --cpus 2 --memory 4G --disk 20G 
+multipass launch 24.04 --name prod-worker --cpus 2 --memory 4G --disk 20G 
+
+
+mgmt-k3s                Running           192.168.2.17     Ubuntu 24.04 LTS
+prod-master             Running           192.168.2.18     Ubuntu 24.04 LTS
+prod-worker             Running           192.168.2.19     Ubuntu 24.04 LTS
+
+multipass shell mgmt-k3s
+sudo apt update && sudo apt -y install curl ca-certificates gnupg
+exit
+
+multipass shell prod-master
+sudo apt update && sudo apt -y install curl ca-certificates gnupg
+exit
+
+multipass shell prod-worker
+sudo apt update && sudo apt -y install curl ca-certificates gnupg
+exit
+
+multipass shell mgmt-k3s
+curl -sfL https://get.k3s.io | sh -s - server \
+  --write-kubeconfig-mode 644 \
+  --tls-san <mgmt-k3s-ip>
+
+sudo kubectl get nodes -o wide
+sudo kubectl get pods -A
+
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+helm version
+
+helm repo add jetstack https://charts.jetstack.io
+helm repo update
+
+kubectl create namespace cert-manager
+helm install cert-manager jetstack/cert-manager \
+  --namespace cert-manager \
+  --set crds.enabled=true
+
+# helm install cert-manager oci://quay.io/jetstack/charts/cert-manager \
+#   --version v1.20.0 \
+#   --namespace cert-manager \
+#   --create-namespace \
+#   --set crds.enabled=true
+
+keep Host name of rancher.lab.local in all nodes 
+
+192.168.2.16 rancher.lab.local 
+

@@ -1,0 +1,94 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+
+packages:
+  - curl
+  - wget
+  - ca-certificates
+  - gnupg
+  - apt-transport-https
+  - jq
+
+write_files:
+  - path: /root/install-rancher.sh
+    permissions: "0755"
+    owner: root:root
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+
+      HOSTNAME_FQDN="${RANCHER_HOSTNAME:-rancher.local}"
+
+      echo "[1/8] Installing K3s..."
+      curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server --write-kubeconfig-mode 644" sh -
+
+      export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+      echo "[2/8] Waiting for node to become Ready..."
+      for i in $(seq 1 60); do
+        if kubectl get nodes >/dev/null 2>&1; then
+          READY_COUNT="$(kubectl get nodes --no-headers 2>/dev/null | awk '$2 ~ /Ready/ {count++} END {print count+0}')"
+          if [ "${READY_COUNT}" -ge 1 ]; then
+            break
+          fi
+        fi
+        sleep 5
+      done
+
+      kubectl get nodes -o wide
+
+      echo "[3/8] Waiting for core system pods..."
+      kubectl wait --for=condition=Ready pods --all -n kube-system --timeout=300s || true
+
+      echo "[4/8] Installing Helm..."
+      curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+      echo "[5/8] Installing cert-manager..."
+      kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
+      kubectl wait --for=condition=Available deployment/cert-manager -n cert-manager --timeout=300s
+      kubectl wait --for=condition=Available deployment/cert-manager-cainjector -n cert-manager --timeout=300s
+      kubectl wait --for=condition=Available deployment/cert-manager-webhook -n cert-manager --timeout=300s
+
+      echo "[6/8] Adding Rancher Helm repo..."
+      helm repo add rancher-latest https://releases.rancher.com/server-charts/latest
+      helm repo update
+
+      echo "[7/8] Installing Rancher..."
+      kubectl create namespace cattle-system || true
+
+      helm upgrade --install rancher rancher-latest/rancher \
+        --namespace cattle-system \
+        --set hostname="${HOSTNAME_FQDN}" \
+        --set replicas=1 \
+        --set bootstrapPassword=admin123 \
+        --set ingress.ingressClassName=traefik
+
+      echo "[8/8] Waiting for Rancher deployment..."
+      kubectl rollout status deploy/rancher -n cattle-system --timeout=600s || true
+
+      echo
+      echo "===== K3s nodes ====="
+      kubectl get nodes -o wide
+      echo
+      echo "===== kube-system ====="
+      kubectl get pods -n kube-system -o wide
+      echo
+      echo "===== cert-manager ====="
+      kubectl get pods -n cert-manager -o wide
+      echo
+      echo "===== cattle-system ====="
+      kubectl get pods -n cattle-system -o wide
+      echo
+      echo "===== Rancher ingress ====="
+      kubectl get ingress -n cattle-system
+      echo
+      echo "===== Bootstrap password ====="
+      echo "admin123"
+      echo
+      echo "Rancher URL: https://${HOSTNAME_FQDN}"
+
+runcmd:
+  - [ bash, -c, "RANCHER_HOSTNAME=rancher.local /root/install-rancher.sh > /var/log/install-rancher.log 2>&1" ]
+
+final_message: "cloud-init finished. Check /var/log/install-rancher.log"
