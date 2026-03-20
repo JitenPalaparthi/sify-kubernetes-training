@@ -1,0 +1,57 @@
+name: ci-cd
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  build-test-scan-push-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Run tests with coverage
+        run: |
+          go test ./... -coverprofile=coverage.out
+
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Login to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build and push image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          IMAGE=ghcr.io/${{ github.repository }}:latest
+          docker build -t $IMAGE .
+          docker push $IMAGE
+
+      - name: Set kubeconfig
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          echo "${{ secrets.KUBE_CONFIG_B64 }}" | base64 -d > kubeconfig
+          echo "KUBECONFIG=$PWD/kubeconfig" >> $GITHUB_ENV
+
+      - name: Deploy app to Kubernetes
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          kubectl apply -f k8s/app/00-namespace.yaml
+          IMAGE=ghcr.io/${{ github.repository }}:latest
+          sed "s#__IMAGE__#$IMAGE#g" k8s/app/01-deployment.yaml | kubectl apply -f -
+          kubectl apply -f k8s/app/02-service.yaml
