@@ -19,6 +19,9 @@ write_files:
       set -Eeuo pipefail
 
       ETCD_VER="${ETCD_VER:-v3.5.15}"
+      KUBECTL_VER="${KUBECTL_VER:-v1.30.0}"
+      UBUNTU_HOME="/home/ubuntu"
+      KUBE_DIR="${UBUNTU_HOME}/.kube"
 
       log() {
         echo
@@ -26,38 +29,79 @@ write_files:
         echo
       }
 
-      install_etcdctl() {
-        log "Installing etcdctl only"
-
+      detect_arch() {
         ARCH="$(uname -m)"
         case "$ARCH" in
-          x86_64) ETCD_ARCH="amd64" ;;
-          aarch64|arm64) ETCD_ARCH="arm64" ;;
+          x86_64) BIN_ARCH="amd64" ;;
+          aarch64|arm64) BIN_ARCH="arm64" ;;
           *)
             echo "Unsupported architecture: $ARCH"
             exit 1
             ;;
         esac
+        log "Detected architecture: $ARCH -> $BIN_ARCH"
+      }
 
-        log "Detected architecture: $ARCH -> $ETCD_ARCH"
+      install_etcdctl() {
+        log "Installing etcdctl"
 
         cd /tmp
         rm -rf /tmp/etcd-download
         mkdir -p /tmp/etcd-download
         cd /tmp/etcd-download
 
-        curl -fLO "https://github.com/etcd-io/etcd/releases/download/${ETCD_VER}/etcd-${ETCD_VER}-linux-${ETCD_ARCH}.tar.gz"
-        tar -xzf "etcd-${ETCD_VER}-linux-${ETCD_ARCH}.tar.gz"
+        curl -fLO "https://github.com/etcd-io/etcd/releases/download/${ETCD_VER}/etcd-${ETCD_VER}-linux-${BIN_ARCH}.tar.gz"
+        tar -xzf "etcd-${ETCD_VER}-linux-${BIN_ARCH}.tar.gz"
 
-        install -m 0755 "etcd-${ETCD_VER}-linux-${ETCD_ARCH}/etcdctl" /usr/local/bin/etcdctl
+        install -m 0755 "etcd-${ETCD_VER}-linux-${BIN_ARCH}/etcdctl" /usr/local/bin/etcdctl
 
         etcdctl version
 
         rm -rf /tmp/etcd-download
       }
 
+      install_kubectl() {
+        log "Installing kubectl ${KUBECTL_VER}"
+
+        cd /tmp
+        rm -f kubectl
+
+        curl -fLO "https://dl.k8s.io/release/${KUBECTL_VER}/bin/linux/${BIN_ARCH}/kubectl"
+
+        chmod +x kubectl
+        install -m 0755 kubectl /usr/local/bin/kubectl
+
+        kubectl version --client
+      }
+
+      setup_kube_dir() {
+        log "Creating ${KUBE_DIR}"
+
+        mkdir -p "${KUBE_DIR}"
+        chown -R ubuntu:ubuntu "${KUBE_DIR}"
+        chmod 700 "${KUBE_DIR}"
+
+        touch "${KUBE_DIR}/config"
+        chown ubuntu:ubuntu "${KUBE_DIR}/config"
+        chmod 600 "${KUBE_DIR}/config"
+
+        log "Configured ${KUBE_DIR} with secure permissions"
+      }
+
+      setup_shell_aliases() {
+        log "Adding kubectl alias"
+
+        grep -qxF 'alias k=kubectl' "${UBUNTU_HOME}/.bashrc" || echo 'alias k=kubectl' >> "${UBUNTU_HOME}/.bashrc"
+        chown ubuntu:ubuntu "${UBUNTU_HOME}/.bashrc"
+      }
+
       main() {
+        detect_arch
         install_etcdctl
+        install_kubectl
+        setup_kube_dir
+        setup_shell_aliases
+
         log "Client setup complete"
       }
 
