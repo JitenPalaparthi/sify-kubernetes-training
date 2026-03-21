@@ -10,3 +10,12 @@ multipass transfer k8s-master:/home/ubuntu/join-worker.sh k8s-worker:/home/ubunt
 multipass transfer k8s-master:/home/ubuntu/join-worker.sh . && \
 multipass transfer ./join-worker.sh k8s-worker:/home/ubuntu/join-worker.sh
 
+
+k8s-client              Running           10.38.154.229    Ubuntu 24.04 LTS
+                                          172.17.0.1
+k8s-master              Running           10.38.154.25     Ubuntu 24.04 LTS
+                                          10.244.0.0
+                                          10.244.0.1
+k8s-worker              Running           10.38.154.233    Ubuntu 24.04 LTS
+                                          10.244.1.0
+

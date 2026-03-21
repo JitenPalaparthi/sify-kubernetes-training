@@ -79,3 +79,5 @@ kubectl create rolebinding jp-admin \
   --user=jp \
   --namespace=dev
   ```
+
+

@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sonar-k8s-demo
+  namespace: __NAMESPACE__
+spec:
+  rules:
+    - host: __APP_HOST__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sonar-k8s-demo
+                port:
+                  number: 80

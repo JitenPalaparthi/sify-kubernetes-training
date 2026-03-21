@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sonar-k8s-demo-config
+  namespace: __NAMESPACE__
+data:
+  PORT: "8080"
